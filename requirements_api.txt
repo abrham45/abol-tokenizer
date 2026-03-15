@@ -4,3 +4,4 @@ pydantic>=2.0.0
 sacrebleu>=2.3.0
 tiktoken>=0.6.0
 tokenizers>=0.15.0
+sentencepiece>=0.2.0

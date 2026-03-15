@@ -30,6 +30,7 @@ from collections import Counter
 from typing import List, Tuple, Dict, Any
 
 import sacrebleu
+import sentencepiece as spm
 from tokenizers import Tokenizer as HFTokenizer
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
@@ -105,6 +106,49 @@ class BPEWrapper:
     def decode(self, text: str) -> str:
         enc = self._tok.encode(text)
         return self._tok.decode(enc.ids)
+
+
+class SentencePieceWrapper:
+    """
+    Wraps a SentencePiece model trained on the Amharic corpus.
+    Supports both BPE and Unigram model types.
+    """
+    def __init__(self, corpus_path: str, vocab_size: int = 13_000, model_type: str = "unigram"):
+        self.name = f"SentencePiece ({model_type})"
+        self._model_type = model_type
+
+        # Train SentencePiece on the corpus
+        # Retry with lower vocab if corpus is too small
+        model_prefix = f"/tmp/spm_amharic_{model_type}"
+        base_args = dict(
+            input=corpus_path,
+            model_prefix=model_prefix,
+            model_type=model_type,
+            character_coverage=0.9999,
+            pad_id=0, unk_id=1, bos_id=2, eos_id=3,
+            pad_piece="<pad>", unk_piece="<unk>",
+        )
+        for attempt_vocab in [vocab_size, 8000, 6000, 4000]:
+            try:
+                spm.SentencePieceTrainer.train(vocab_size=attempt_vocab, **base_args)
+                vocab_size = attempt_vocab
+                break
+            except RuntimeError as e:
+                if "Vocabulary size too high" in str(e):
+                    continue
+                raise
+        self._sp = spm.SentencePieceProcessor()
+        self._sp.load(f"{model_prefix}.model")
+        self.vocab_size = self._sp.get_piece_size()
+
+    def encode(self, text: str) -> Tuple[List[str], List[bool]]:
+        pieces = self._sp.encode(text, out_type=str)
+        is_unk = [p == "<unk>" for p in pieces]
+        return pieces, is_unk
+
+    def decode(self, text: str) -> str:
+        pieces = self._sp.encode(text, out_type=str)
+        return self._sp.decode(pieces)
 
 
 class TiktokenWrapper:
@@ -316,7 +360,7 @@ if __name__ == "__main__":
 
     print("=" * 100)
     print("ABOL TOKENIZER — EVALUATION")
-    print("Comparing: Abol-GMS · Abol-CV · Abol-Hybrid · BPE (Amharic) · GPT-2 · cl100k")
+    print("Comparing: Abol-GMS · Abol-CV · Abol-Hybrid · BPE (Amharic) · SentencePiece · GPT-2 · cl100k")
     print("=" * 100)
 
     # Load corpus
@@ -343,13 +387,25 @@ if __name__ == "__main__":
     bpe_wrapper = BPEWrapper(CORPUS_PATH, vocab_size=13_000)
     print(f"    → vocab size: {bpe_wrapper.vocab_size:,}")
 
+    print(f"  [SentencePiece Unigram] training on {CORPUS_PATH} (vocab ≈ 13 K, Unigram LM)...")
+    sp_unigram_wrapper = SentencePieceWrapper(CORPUS_PATH, vocab_size=13_000, model_type="unigram")
+    print(f"    → vocab size: {sp_unigram_wrapper.vocab_size:,}")
+
+    print(f"  [SentencePiece BPE] training on {CORPUS_PATH} (vocab ≈ 13 K, BPE)...")
+    sp_bpe_wrapper = SentencePieceWrapper(CORPUS_PATH, vocab_size=13_000, model_type="bpe")
+    print(f"    → vocab size: {sp_bpe_wrapper.vocab_size:,}")
+
     print("  [GPT-2] loading tiktoken gpt2 (English-trained BPE, 50K vocab)...")
     gpt2_wrapper = TiktokenWrapper("gpt2")
 
     print("  [cl100k] loading tiktoken cl100k_base (GPT-4 tokenizer, 100K vocab)...")
     cl100k_wrapper = TiktokenWrapper("cl100k_base")
 
-    wrappers = [gms_wrapper, cv_wrapper, hybrid_wrapper, bpe_wrapper, gpt2_wrapper, cl100k_wrapper]
+    wrappers = [
+        gms_wrapper, cv_wrapper, hybrid_wrapper,
+        bpe_wrapper, sp_unigram_wrapper, sp_bpe_wrapper,
+        gpt2_wrapper, cl100k_wrapper,
+    ]
 
     # ── Evaluate ──────────────────────────────────────────────────────────────
     print("\nRunning evaluation...\n")
