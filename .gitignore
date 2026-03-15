@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*.pyc
+.ipynb_checkpoints/
+venv_api/
+venv/
+env/
+model_with_sqlite_data/
