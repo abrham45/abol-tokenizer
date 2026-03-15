@@ -36,6 +36,7 @@ from tokenizers.trainers import BpeTrainer
 from tokenizers.pre_tokenizers import Whitespace
 
 from amharic_tokenizer.tokenizer import Tokenizer
+from amharic_tokenizer.decomposed_tokenizer import DecomposedTokenizer
 from amharic_tokenizer.hybrid_tokenizer import HybridTokenizer
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -82,7 +83,7 @@ class AbolWrapper:
 class BPEWrapper:
     """Wraps a HuggingFace BPE tokenizer trained on the Amharic corpus."""
     def __init__(self, corpus_path: str, vocab_size: int = 13_000):
-        self.name = "BPE"
+        self.name = "BPE (Amharic)"
         tokenizer = HFTokenizer(BPE(unk_token="[UNK]"))
         tokenizer.pre_tokenizer = Whitespace()
         trainer = BpeTrainer(
@@ -273,14 +274,14 @@ def print_table(results: List[Dict[str, Any]]):
     hdr = "|" + "|".join(f" {c:<{widths[c]}} " for c in cols) + "|"
     div = sep.replace("-", "=")
 
-    print("\n" + "=" * 90)
+    print("\n" + "=" * 100)
     print("EVALUATION RESULTS")
-    print("=" * 90)
+    print("=" * 100)
     print(sep)
     print(hdr)
     print(div)
 
-    # Group: Abol first, then standard
+    # Group: Abol algorithms first, then standard baselines
     abol  = [r for r in results if r["Algorithm"].startswith("Abol")]
     other = [r for r in results if not r["Algorithm"].startswith("Abol")]
 
@@ -308,19 +309,22 @@ def print_table(results: List[Dict[str, Any]]):
 # ──────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    CORPUS_PATH  = "./ahun_corpus.txt"
-    GMS_MODEL    = "./model_dir"
-    DECOMP_MODEL = "./model_hybrid"
+    CORPUS_PATH   = "./ahun_corpus.txt"
+    GMS_MODEL     = "./model_dir"
+    DECOMP_MODEL  = "./model_decomposed"
+    HYBRID_MODEL  = "./model_hybrid"
 
-    print("=" * 90)
-    print("ABOL TOKENIZER — EVALUATION (Abol-GMS · Abol-Decomposed · BPE · GPT-2 · cl100k)")
-    print("=" * 90)
+    print("=" * 100)
+    print("ABOL TOKENIZER — EVALUATION")
+    print("Comparing: Abol-GMS · Abol-CV · Abol-Hybrid · BPE (Amharic) · GPT-2 · cl100k")
+    print("=" * 100)
 
     # Load corpus
     print("\nLoading corpus...")
     lines = load_corpus(CORPUS_PATH)
     train_sents, test_sents = split_train_test(lines, test_ratio=0.15)
-    print(f"  Total : {len(lines):,} lines   Train : {len(train_sents):,}   Test : {len(test_sents):,}")
+    print(f"  Corpus   : {CORPUS_PATH}")
+    print(f"  Total    : {len(lines):,} lines   Train : {len(train_sents):,}   Test : {len(test_sents):,}")
     print(f"  Test words : {count_words(test_sents):,}")
 
     # ── Load / train tokenizers ───────────────────────────────────────────────
@@ -329,20 +333,23 @@ if __name__ == "__main__":
     print("  [Abol-GMS] loading model_dir...")
     gms_wrapper = AbolWrapper("Abol-GMS", Tokenizer.load_pretrained(GMS_MODEL))
 
-    print("  [Abol-Decomposed] loading model_hybrid...")
-    decomp_wrapper = AbolWrapper("Abol-Decomposed", HybridTokenizer.load_pretrained(DECOMP_MODEL))
+    print("  [Abol-CV] loading model_decomposed (pure Fidel CV decomposition)...")
+    cv_wrapper = AbolWrapper("Abol-CV", DecomposedTokenizer.load_pretrained(DECOMP_MODEL))
 
-    print("  [BPE] training on corpus (vocab ≈ 13 K)...")
+    print("  [Abol-Hybrid] loading model_hybrid (morphological + whole-word)...")
+    hybrid_wrapper = AbolWrapper("Abol-Hybrid", HybridTokenizer.load_pretrained(HYBRID_MODEL))
+
+    print(f"  [BPE (Amharic)] training on {CORPUS_PATH} (vocab ≈ 13 K, same corpus as Abol)...")
     bpe_wrapper = BPEWrapper(CORPUS_PATH, vocab_size=13_000)
     print(f"    → vocab size: {bpe_wrapper.vocab_size:,}")
 
-    print("  [GPT-2] loading tiktoken gpt2 encoding...")
+    print("  [GPT-2] loading tiktoken gpt2 (English-trained BPE, 50K vocab)...")
     gpt2_wrapper = TiktokenWrapper("gpt2")
 
-    print("  [cl100k] loading tiktoken cl100k_base encoding...")
+    print("  [cl100k] loading tiktoken cl100k_base (GPT-4 tokenizer, 100K vocab)...")
     cl100k_wrapper = TiktokenWrapper("cl100k_base")
 
-    wrappers = [gms_wrapper, decomp_wrapper, bpe_wrapper, gpt2_wrapper, cl100k_wrapper]
+    wrappers = [gms_wrapper, cv_wrapper, hybrid_wrapper, bpe_wrapper, gpt2_wrapper, cl100k_wrapper]
 
     # ── Evaluate ──────────────────────────────────────────────────────────────
     print("\nRunning evaluation...\n")
