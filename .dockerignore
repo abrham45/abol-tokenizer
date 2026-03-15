@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+venv_api/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+*.md
+
+# Test files
+tests/
+test_*.py
+*_test.py
+demo_*.py
+compare_*.py
+interactive_test.py
+algorithm_comparison.py
+
+# Scripts (not needed in container)
+RUN_WEB_APP.sh
+train_with_sqlite.py
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.bak
+*.tmp

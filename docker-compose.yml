@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  amharic-tokenizer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amharic-tokenizer-web
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/info')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amharic Tokenizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .algorithm-selector {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .algorithm-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .algorithm-selector select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .algorithm-selector select:hover {
+            border-color: #667eea;
+        }
+
+        .algorithm-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-section label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-family: 'Noto Sans Ethiopic', 'Kefa', sans-serif;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .tokenize-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tokenize-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .tokenize-btn:active {
+            transform: translateY(0);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .decomposed-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #764ba2;
+        }
+
+        .decomposed-section h3 {
+            margin-bottom: 10px;
+            color: #764ba2;
+        }
+
+        .decomposed-text {
+            font-family: 'Noto Sans Ethiopic', 'Kefa', monospace;
+            font-size: 1.2rem;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .output-section {
+            margin-top: 30px;
+        }
+
+        .output-section h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .tokens-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 100px;
+            line-height: 2;
+            font-size: 1.1rem;
+        }
+
+        .token {
+            display: inline-block;
+            padding: 6px 12px;
+            margin: 4px;
+            border-radius: 6px;
+            font-family: 'Noto Sans Ethiopic', 'Kefa', sans-serif;
+            font-weight: 500;
+            transition: transform 0.2s;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .token:hover {
+            transform: translateY(-2px);
+            border-color: #333;
+        }
+
+        .token-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .token-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .token-item:last-child {
+            border-bottom: none;
+        }
+
+        .token-item-text {
+            font-family: 'Noto Sans Ethiopic', 'Kefa', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .token-item-id {
+            font-family: monospace;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .examples {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .example-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Noto Sans Ethiopic', 'Kefa', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-size: 1.2rem;
+            margin: 20px 0;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        /* Color palette for tokens */
+        .token-0 { background: #FFE5E5; color: #C41E3A; }
+        .token-1 { background: #E5F5FF; color: #0066CC; }
+        .token-2 { background: #E5FFE5; color: #228B22; }
+        .token-3 { background: #FFF5E5; color: #FF8C00; }
+        .token-4 { background: #F5E5FF; color: #8B008B; }
+        .token-5 { background: #FFE5F5; color: #C71585; }
+        .token-6 { background: #E5FFFF; color: #008B8B; }
+        .token-7 { background: #FFFFE5; color: #B8860B; }
+        .token-8 { background: #F0E5FF; color: #6A0DAD; }
+        .token-9 { background: #E5F0FF; color: #4169E1; }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-card {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔤 Amharic Tokenizer</h1>
+            <p>Tokenize Amharic text with multiple algorithms - Like tiktoken for Amharic!</p>
+        </div>
+
+        <div class="main-card">
+            <div class="controls">
+                <div class="algorithm-selector">
+                    <label for="algorithm">Select Algorithm:</label>
+                    <select id="algorithm">
+                        <option value="original">Abol-GMS</option>
+                        <!-- <option value="decomposed">Decomposed (Fidel CV + Greedy)</option>
+                        <option value="morphological">Morphological (ሰዎች → ሰው + ኦች)</option> -->
+                        <option value="hybrid" selected>Abol-Decomposed ✨</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="input-section">
+                <label for="textInput">Enter Amharic Text:</label>
+                <textarea 
+                    id="textInput" 
+                    class="text-input" 
+                    placeholder="Type or paste Amharic text here... ሰላም"
+                ></textarea>
+            </div>
+
+            <div class="examples">
+                <span style="color: #666; font-weight: 600; margin-right: 10px;">Examples:</span>
+                <button class="example-btn" onclick="setExample('ሰላም')">ሰላም</button>
+                <button class="example-btn" onclick="setExample('እንዴት ነህ?')">እንዴት ነህ?</button>
+                <button class="example-btn" onclick="setExample('መጽሐፍ ቤት')">መጽሐፍ ቤት</button>
+                <button class="example-btn" onclick="setExample('ልጆች ይጫወታሉ')">ልጆች ይጫወታሉ</button>
+                <button class="example-btn" onclick="setExample('ኢትዮጵያ ውብ ሀገር ናት')">ኢትዮጵያ ውብ ሀገር ናት</button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="tokenize-btn" onclick="tokenizeText()">🚀 Tokenize</button>
+            </div>
+
+            <div class="loading" id="loading">⏳ Tokenizing...</div>
+
+            <div id="results" style="display: none;">
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Token Count</div>
+                        <div class="stat-value" id="tokenCount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Character Count</div>
+                        <div class="stat-value" id="charCount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Vocabulary Size</div>
+                        <div class="stat-value" id="vocabSize">0</div>
+                    </div>
+                </div>
+
+                <div id="decomposedSection" style="display: none;" class="decomposed-section">
+                    <h3>🔄 Decomposed (CV Representation)</h3>
+                    <div class="decomposed-text" id="decomposedText"></div>
+                </div>
+
+                <div class="output-section">
+                    <h2>📝 Tokens (Visual)</h2>
+                    <div class="tokens-container" id="tokensVisual"></div>
+                </div>
+
+                <div class="output-section">
+                    <h2>📋 Token Details</h2>
+                    <div class="token-list" id="tokenList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAlgorithm = 'original';
+
+        // Update algorithm selection
+        document.getElementById('algorithm').addEventListener('change', (e) => {
+            currentAlgorithm = e.target.value;
+        });
+
+        // Set example text
+        function setExample(text) {
+            document.getElementById('textInput').value = text;
+            tokenizeText();
+        }
+
+        // Main tokenize function
+        async function tokenizeText() {
+            const text = document.getElementById('textInput').value.trim();
+            const algorithm = document.getElementById('algorithm').value;
+            
+            if (!text) {
+                showError('Please enter some text');
+                return;
+            }
+
+            hideError();
+            showLoading();
+            hideResults();
+
+            try {
+                const response = await fetch('/api/tokenize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        algorithm: algorithm
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Tokenization failed');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+
+            } catch (error) {
+                showError('Error: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayResults(data) {
+            // Update stats
+            document.getElementById('tokenCount').textContent = data.token_count;
+            document.getElementById('charCount').textContent = data.text.length;
+            document.getElementById('vocabSize').textContent = data.vocab_size.toLocaleString();
+
+            // Show decomposed text if available
+            if (data.decomposed_text) {
+                document.getElementById('decomposedSection').style.display = 'block';
+                document.getElementById('decomposedText').textContent = data.decomposed_text;
+            } else {
+                document.getElementById('decomposedSection').style.display = 'none';
+            }
+
+            // Display tokens visually
+            const tokensVisual = document.getElementById('tokensVisual');
+            tokensVisual.innerHTML = '';
+            
+            data.spans.forEach((span, idx) => {
+                const tokenEl = document.createElement('span');
+                tokenEl.className = `token token-${idx % 10}`;
+                tokenEl.textContent = span.token;
+                tokenEl.title = `ID: ${span.id}\nStart: ${span.start}\nEnd: ${span.end}`;
+                
+                // Show decomposed token on hover if available
+                if (span.decomposed_token && span.decomposed_token !== span.token) {
+                    tokenEl.title += `\nCV Form: ${span.decomposed_token}`;
+                }
+                
+                tokensVisual.appendChild(tokenEl);
+            });
+
+            // Display token list
+            const tokenList = document.getElementById('tokenList');
+            tokenList.innerHTML = '';
+            
+            data.spans.forEach((span, idx) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'token-item';
+                
+                let tokenDisplay = `<span class="token-item-text">${span.token}</span>`;
+                
+                // Add decomposed form if available
+                if (span.decomposed_token && span.decomposed_token !== span.token) {
+                    tokenDisplay += ` <span style="color: #999; font-size: 0.9rem;">(CV: ${span.decomposed_token})</span>`;
+                }
+                
+                itemEl.innerHTML = `
+                    ${tokenDisplay}
+                    <span class="token-item-id">ID: ${span.id}</span>
+                `;
+                
+                tokenList.appendChild(itemEl);
+            });
+
+            // Show results
+            showResults();
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function showResults() {
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function hideResults() {
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.classList.add('active');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('active');
+        }
+
+        // Auto-tokenize on Enter (Ctrl+Enter)
+        document.getElementById('textInput').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                tokenizeText();
+            }
+        });
+
+        // Load initial info
+        async function loadInfo() {
+            try {
+                const response = await fetch('/api/info');
+                const data = await response.json();
+                console.log('Available tokenizers:', data);
+            } catch (error) {
+                console.error('Error loading info:', error);
+            }
+        }
+
+        loadInfo();
+    </script>
+</body>
+</html>

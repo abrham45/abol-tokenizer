@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amharic-tokenizer"
+version = "0.1.0"
+description = "A customizable Amharic tokenizer that can be trained on a user corpus or used as a pretrained encoder/decoder."
+license = "MIT"
+authors = [ { name = "Your Name", email = "you@example.com" } ]
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["amharic_tokenizer*"]
+
+[project.scripts]
+amharic-tokenizer = "amharic_tokenizer.cli:main"
