@@ -6,3 +6,4 @@ venv_api/
 venv/
 env/
 model_with_sqlite_data/
+evaluation_results.json
